@@ -133,10 +133,13 @@ function islandora_solr_facet_pages_block_view($delta = '') {
  *   Facet_queries are the solr results wich maps the filter query to the bucket
  *   size, eg: solr_field:A* => 1234
  */
-function islandora_solr_facet_pages_build_letterer($solr, $solr_field, $search_term = NULL) {
+function islandora_solr_facet_pages_build_letterer($solr, $solr_set, $search_term = NULL) {
   $solr_build = new IslandoraSolrQueryProcessor();
   $fq = array();
   $fq_map = array();
+  $solr_field = $solr_set['solr_field'];
+  $limit_field = $solr_set['limit_field'];
+  $limit_value = $solr_set['limit_value'];
   foreach (range('A', 'Z') as $letter) {
     $value = "$solr_field:($letter* OR " . strtolower($letter) . "*)";
     $fq_map[$value] = $letter;
@@ -161,7 +164,7 @@ function islandora_solr_facet_pages_build_letterer($solr, $solr_field, $search_t
     $query = "$solr_field:($search_term)";
   }
   else {
-    $query = "$solr_field:[* TO *]";
+    $query = "$solr_field:[* TO *] AND $limit_field:$limit_value";
   }
   $solr_build->buildQuery($query, $params);
   // Because IslandoraSolrQueryProcessor stomps on our facet params.
@@ -199,15 +202,18 @@ function islandora_solr_facet_pages_build_letterer($solr, $solr_field, $search_t
  *   Returns an array of all the facet field values and the bucket size: eg:
  *   solr value => 123
  */
-function islandora_solr_facet_pages_build_results($solr, $solr_field, $prefix, $search_term = NULL) {
+function islandora_solr_facet_pages_build_results($solr, $solr_set, $prefix, $search_term = NULL) {
   $solr_build = new IslandoraSolrQueryProcessor();
   // Get the actual results.
   $search_term = trim($search_term);
+  $solr_field = $solr_set['solr_field'];
+  $limit_field = $solr_set['limit_field'];
+  $limit_value = $solr_set['limit_value'];
   if ($search_term) {
     $query = "$solr_field:($search_term)";
   }
   else {
-    $query = "$solr_field:[* TO *]";
+    $query = "$solr_field:[* TO *] AND $limit_field:$limit_value";
   }
 
   // Set facet parameters.
@@ -295,7 +301,9 @@ function islandora_solr_facet_pages_callback($path = NULL, $prefix = NULL, $sear
   foreach ($fields as $key => $value) {
     if ($path == $value['path']) {
       // Set variables.
-      $solr_field = $value['solr_field'];
+      $solr_set['solr_field'] = $value['solr_field'];
+      $solr_set['limit_field'] = $value['limit_field'];
+      $solr_set['limit_value'] = $value['limit_value'];
       drupal_set_title($value['label']);
     }
   }
@@ -314,7 +322,7 @@ function islandora_solr_facet_pages_callback($path = NULL, $prefix = NULL, $sear
   $solr = new Apache_Solr_Service($parsed_url['host'], $parsed_url['port'], $parsed_url['path']);
 
   // Render letters.
-  $letterer_arr = islandora_solr_facet_pages_build_letterer($solr, $solr_field, $search_term);
+  $letterer_arr = islandora_solr_facet_pages_build_letterer($solr, $solr_set, $search_term);
   $letterer = theme('islandora_solr_facet_pages_letterer', array(
     'facet_queries' => $letterer_arr['facet_queries'],
     'fq_map' => $letterer_arr['fq_map'],
@@ -323,10 +331,10 @@ function islandora_solr_facet_pages_callback($path = NULL, $prefix = NULL, $sear
   ));
 
   // Collect results.
-  $result_fields = islandora_solr_facet_pages_build_results($solr, $solr_field, $prefix, $search_term);
+  $result_fields = islandora_solr_facet_pages_build_results($solr, $solr_set, $prefix, $search_term);
   // Collect results with lowercase.
   $prefix_lower = strtolower($prefix);
-  $result_fields_lower = islandora_solr_facet_pages_build_results($solr, $solr_field, $prefix_lower, $search_term);
+  $result_fields_lower = islandora_solr_facet_pages_build_results($solr, $solr_set, $prefix_lower, $search_term);
   // Merge uppercase with lowercase.
   $result_fields = array_merge($result_fields, $result_fields_lower);
 
@@ -339,7 +347,7 @@ function islandora_solr_facet_pages_callback($path = NULL, $prefix = NULL, $sear
   $results = array_slice($result_fields, $offset, $limit);
   $results = theme('islandora_solr_facet_pages_results', array(
     'results' => $results,
-    'solr_field' => $solr_field,
+    'solr_field' => $solr_set['solr_field'],
     'path' => $path,
   ));
 

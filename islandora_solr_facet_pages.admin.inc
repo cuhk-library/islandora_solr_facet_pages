@@ -52,6 +52,15 @@ function islandora_solr_facet_pages_admin_settings($form, &$form_state) {
         '#type' => 'textfield',
         '#default_value' => isset($value['path']) ? $value['path'] : '',
       ),
+      'limit_field' => array(
+        '#type' => 'textfield',
+        '#default_value' => isset($value['limit_field']) ? $value['limit_field'] : '',
+        '#autocomplete_path' => 'islandora_solr/autocomplete_luke',
+      ),
+      'limit_value' => array(
+        '#type' => 'textfield',
+        '#default_value' => isset($value['limit_value']) ? $value['limit_value'] : '',
+      ),
     );
     $fields[] = $field;
   }
@@ -137,6 +146,8 @@ function theme_islandora_solr_facet_pages_admin_table(&$vars) {
       $row[] = array('data' => drupal_render($form['fields'][$key]['solr_field']));
       $row[] = array('data' => drupal_render($form['fields'][$key]['label']));
       $row[] = array('data' => drupal_render($form['fields'][$key]['path']));
+      $row[] = array('data' => drupal_render($form['fields'][$key]['limit_field']));
+      $row[] = array('data' => drupal_render($form['fields'][$key]['limit_value']));
       $rows[] = $row;
     }
   }
@@ -146,6 +157,8 @@ function theme_islandora_solr_facet_pages_admin_table(&$vars) {
   $header[] = array('data' => t('Solr field'));
   $header[] = array('data' => t('Label'));
   $header[] = array('data' => t('Path'));
+  $header[] = array('data' => t('Limit Field'));
+  $header[] = array('data' => t('Limit Value (If you input pid, please add \ before : e.g cuhk\:etd)'));
 
   // Render table.
   $output = theme('table', array(
