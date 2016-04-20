@@ -48,6 +48,10 @@ function islandora_solr_facet_pages_admin_settings($form, &$form_state) {
         '#type' => 'textfield',
         '#default_value' => isset($value['label']) ? $value['label'] : '',
       ),
+      'url_alias' => array(
+        '#type' => 'textfield',
+        '#default_value' => isset($value['url_alias']) ? $value['url_alias'] : '',
+      ),
       'path' => array(
         '#type' => 'textfield',
         '#default_value' => isset($value['path']) ? $value['path'] : '',
@@ -145,6 +149,7 @@ function theme_islandora_solr_facet_pages_admin_table(&$vars) {
 
       $row[] = array('data' => drupal_render($form['fields'][$key]['solr_field']));
       $row[] = array('data' => drupal_render($form['fields'][$key]['label']));
+      $row[] = array('data' => drupal_render($form['fields'][$key]['url_alias']));
       $row[] = array('data' => drupal_render($form['fields'][$key]['path']));
       $row[] = array('data' => drupal_render($form['fields'][$key]['limit_field']));
       $row[] = array('data' => drupal_render($form['fields'][$key]['limit_value']));
@@ -156,7 +161,8 @@ function theme_islandora_solr_facet_pages_admin_table(&$vars) {
   $header = array();
   $header[] = array('data' => t('Solr field'));
   $header[] = array('data' => t('Label'));
-  $header[] = array('data' => t('Path'));
+  $header[] = array('data' => t('URL Alias'));
+  $header[] = array('data' => t('Varaible'));
   $header[] = array('data' => t('Limit Field'));
   $header[] = array('data' => t('Limit Value (If you input pid, please add \ before : e.g cuhk\:etd)'));
 

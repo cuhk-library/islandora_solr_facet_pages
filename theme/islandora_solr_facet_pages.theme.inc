@@ -75,7 +75,7 @@ function theme_islandora_solr_facet_pages_letterer(&$vars) {
   $output = '<ul class="islandora-solr-facet-pages-letterer">';
 
   $output .= '<li class="letter first' . ((t('ALL') == $prefix) ? ' active' : '') . '">';
-  $output .= '<a href="' . url('browse/' . $path) . '" title="' . t('Browse all') . '">' . t('ALL') . '</a>';
+  $output .= '<a href="' . url($url_alias . '/' . $path) . '" title="' . t('Browse all') . '">' . t('ALL') . '</a>';
   $output .= '</li>';
 
   // Loop over facet queries to render letters.
@@ -86,7 +86,7 @@ function theme_islandora_solr_facet_pages_letterer(&$vars) {
 
     // Create link if facet bucket is not empty.
     if ($count > 0) {
-      $url = 'browse/' . $path . '/' . $value;
+      $url = $url_alias . '/' . $path . '/' . $value;
       $output .= '<a href="' . url($url) . '" title="' . t('Browse starting with @letter', array('@letter' => $value)) . '">' . $value . '</a>';
     }
     else {
@@ -94,6 +94,9 @@ function theme_islandora_solr_facet_pages_letterer(&$vars) {
     }
     $output .= '</li>';
   }
+  $output .= '<li class="letter last' . ((t('Chinese') == $prefix) ? ' active' : '') . '">';
+  $output .= '<a href="' . url($url_alias . '/' . $path . '/Chinese') . '" title="' . t('Chinese character') . '">' . t('Chinese') . '</a>';
+  $output .= '</li>';
   $output .= '</ul>';
 
   return $output;
