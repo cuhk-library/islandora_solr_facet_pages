@@ -65,6 +65,16 @@ function islandora_solr_facet_pages_admin_settings($form, &$form_state) {
         '#type' => 'textfield',
         '#default_value' => isset($value['limit_value']) ? $value['limit_value'] : '',
       ),
+      'view_mode' => array(
+        '#type' => 'select',
+        '#multiple' => FALSE,
+        '#options' => array('Block' => 'block', 'Page' => 'page'),
+        '#default_value' => isset($value['view_mode']) ? $value['view_mode'] : '',
+      ),
+      'show_a_z' => array(
+        '#type' => 'checkbox',
+        '#default_value' => isset($value['show_a_z']) ? $value['show_a_z'] : 1,
+      ),
     );
     $fields[] = $field;
   }
@@ -153,6 +163,8 @@ function theme_islandora_solr_facet_pages_admin_table(&$vars) {
       $row[] = array('data' => drupal_render($form['fields'][$key]['path']));
       $row[] = array('data' => drupal_render($form['fields'][$key]['limit_field']));
       $row[] = array('data' => drupal_render($form['fields'][$key]['limit_value']));
+      $row[] = array('data' => drupal_render($form['fields'][$key]['view_mode']));
+      $row[] = array('data' => drupal_render($form['fields'][$key]['show_a_z']));
       $rows[] = $row;
     }
   }
@@ -161,11 +173,12 @@ function theme_islandora_solr_facet_pages_admin_table(&$vars) {
   $header = array();
   $header[] = array('data' => t('Solr field'));
   $header[] = array('data' => t('Label'));
-  $header[] = array('data' => t('URL Alias'));
+  $header[] = array('data' => t('URL Alias/Block Name'));
   $header[] = array('data' => t('Varaible'));
   $header[] = array('data' => t('Limit Field'));
   $header[] = array('data' => t('Limit Value (If you input pid, please add \ before : e.g cuhk\:etd)'));
-
+  $header[] = array('data' => t('Export as Page or Block'));
+  $header[] = array('data' => t('Show A-Z List'));
   // Render table.
   $output = theme('table', array(
     'header' => $header,
@@ -188,7 +201,7 @@ function islandora_solr_facet_pages_admin_settings_validate($form, &$form_state)
 
     // Check for valid paths.
     foreach ($form_state['values']['islandora_solr_facet_pages_fields_data']['fields'] as $key => $value) {
-      if (!preg_match("/^[a-zA-Z0-9-_]*$/", $value['path'])) {
+      if (!preg_match("/^[a-zA-Z0-9-_\/]*$/", $value['path'])) {
         form_set_error('islandora_solr_facet_pages_fields_data][fields][' . $key . '][path', t('The path can only contain the following characters: a-z, A-Z, 0-9, - and _'));
       }
     }
