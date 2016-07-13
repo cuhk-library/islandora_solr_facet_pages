@@ -452,7 +452,7 @@ function islandora_solr_facet_pages_callback($path = NULL, $prefix = NULL, $sear
   // Render pager.
   $pager = theme('pager', array(
     'element' => 0,
-    'quantity' => 5,
+    'quantity' => 10,
   ));
 
   if (variable_get('islandora_solr_facet_pages_search_form', FALSE)) {
