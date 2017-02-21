@@ -411,22 +411,22 @@ function islandora_solr_facet_pages_callback($path = NULL, $prefix = NULL, $sear
   // Collect results.
   $result_fields = islandora_solr_facet_pages_build_results($solr, $solr_set, $prefix, $search_term);
   // Collect results with lowercase.
-  //print_r($result_fields);
-  $prefix_lower = strtolower($prefix);
-  $result_fields_lower = islandora_solr_facet_pages_build_results($solr, $solr_set, $prefix_lower, $search_term);
-   //print_r($result_fields_lower);
+  if(strtolower($prefix)  !== 'chinese'){
+    $prefix_lower = strtolower($prefix);
+    $result_fields_lower = islandora_solr_facet_pages_build_results($solr, $solr_set, $prefix_lower, $search_term);
+  }
   // Merge uppercase with lowercase.
    if(!empty($result_fields_lower) && isset($result_fields_lower)){
-     $result_fields_merge = array_merge($result_fields, $result_fields_lower);
+     //$result_fields_merge = array_merge($result_fields, $result_fields_lower);
+     $result_fields_merge = $result_fields+$result_fields_lower;
    }else{
      $result_fields_merge = $result_fields;
    }
   
   // Set the facet prefix.
-  if (strtolower($prefix) == 'chinese') {
+  if (strtolower($prefix) === 'chinese') {
     $replace_string = "/^[^a-zA-Z]/";
     foreach($result_fields_merge as $key => $value){
-      //echo $key . ' ';
       $key_string = $key;
       if(preg_match("/^[^a-zA-Z]/",$key) == 0){
         unset($result_fields_merge[$key]);
