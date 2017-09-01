@@ -21,7 +21,8 @@
   <?php foreach ($results as $result => $count): ?>
     <li>
       <?php $filter = $solr_field . ':"' . addslashes($result) . '"'; ?>
-      <?php print l(truncate_utf8($result, 72, TRUE, TRUE), 'islandora/search/*:*', array('query' => array('f' => array($filter)))); ?>
+      <?php $filter1 = $limit_field . ':"' . $limit_value . '"'; ?>
+      <?php print l(truncate_utf8($result, 72, TRUE, TRUE), 'islandora/search/*:*', array('query' => array('f' => array($filter,$filter1)))); ?>
       <span class="bucket-size">(<?php print $count; ?>)</span>
     </li>
   <?php endforeach; ?>

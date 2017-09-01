@@ -445,6 +445,8 @@ function islandora_solr_facet_pages_callback($path = NULL, $prefix = NULL, $sear
   $results = theme('islandora_solr_facet_pages_results', array(
     'results' => $results,
     'solr_field' => $solr_set['solr_field'],
+    'limit_field' => $solr_set['limit_field'],
+    'limit_value' => $solr_set['limit_value'],
     'path' => $path,
     'url_alias' => $url_alias,
   ));
