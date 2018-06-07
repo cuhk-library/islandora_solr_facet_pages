@@ -192,11 +192,12 @@ function islandora_solr_facet_pages_block_view($delta = '') {
  *   Term to search facets with.
  *
  * @return array
- *   Returns array containing facet_queries and a filter query map. Both arrays
- *   are used to theme the alphabetical pager. The fq_map contains an array
- *   which maps a filter query to a prefix. eg: solr_field:A* => A.
- *   Facet_queries are the solr results wich maps the filter query to the bucket
- *   size, eg: solr_field:A* => 1234
+ *   An associative array with elements 'facet_queries' and 'fq_map'. Both
+ *   arrays are used to theme the alphabetical pager.
+ *   'fq_map' (filter query map) is an associative array which maps a filter
+ *   query to a prefix, eg: 'solr_field:A*' => 'A'.
+ *   'facet_queries' is an associative array which maps the filter query to the
+ *   bucket size, eg: 'solr_field:A*' => 1234.
  */
 function islandora_solr_facet_pages_build_letterer($solr, $solr_set, $search_term = NULL) {
   $solr_build = new IslandoraSolrQueryProcessor();
@@ -218,9 +219,12 @@ function islandora_solr_facet_pages_build_letterer($solr, $solr_set, $search_ter
     'facet.mincount' => 1,
     'facet.limit' => 0,
     'facet.query' => $fq,
-    'qt' => variable_get('islandora_solr_request_handler', 'standard'),
     'hl' => 'false',
   );
+  $request_handler = variable_get('islandora_solr_request_handler', FALSE);
+  if ($request_handler) {
+    $params['qt'] = $request_handler;
+  }
 
   // Set query.
   $search_term = trim($search_term);
@@ -287,9 +291,13 @@ function islandora_solr_facet_pages_build_results($solr, $solr_set, $prefix, $se
     'facet.sort' => 'index',
     'facet.mincount' => 1,
     'facet.limit' => variable_get('islandora_solr_facet_pages_facet_limit', 100000),
-    'qt' => variable_get('islandora_solr_request_handler', 'standard'),
     'hl' => 'false',
   );
+
+  $request_handler = variable_get('islandora_solr_request_handler', FALSE);
+  if ($request_handler) {
+    $facet_params['qt'] = $request_handler;
+  }
 
   // Set the facet prefix.
   if ($prefix != t('ALL') && strtolower($prefix) != 'chinese') {
@@ -358,6 +366,9 @@ function islandora_solr_facet_pages_pager($result_fields = array()) {
  *   Rendered page including letter pager, numerical pager and search results.
  */
 function islandora_solr_facet_pages_callback($path = NULL, $prefix = NULL, $search_term = NULL) {
+  module_load_include('inc', 'islandora_solr', 'includes/utilities');
+  $search_term = islandora_solr_restore_slashes($search_term);
+
   // Get available fields from variable.
   $current_url = drupal_get_path_alias();
     
@@ -395,53 +406,65 @@ function islandora_solr_facet_pages_callback($path = NULL, $prefix = NULL, $sear
   $parsed_url = parse_url(variable_get('islandora_solr_url', 'http://localhost:8080/solr'));
   $solr = new Apache_Solr_Service($parsed_url['host'], $parsed_url['port'], $parsed_url['path']);
 
+  // Create an escaped variable for the facet search term, for use with
+  // the following two functions below:
+  //
+  // islandora_solr_facet_pages_build_letterer()
+  // islandora_solr_facet_pages_build_results()
+  //
+  // We do this to preserve the original value of the search term, so that
+  // subsequent calls to drupal_get_form() are prepopulated with the user
+  // input text, and not the escaped string.
+  $show_form = variable_get('islandora_solr_facet_pages_search_form', TRUE);
+  $escape_lucene = variable_get('islandora_solr_facet_pages_lucene_syntax_escape', FALSE);
+
+  $search_term_escape = ($show_form && $escape_lucene) ?
+    islandora_solr_facet_query_escape($search_term, variable_get('islandora_solr_facet_pages_lucene_regex_default', ISLANDORA_SOLR_QUERY_FACET_LUCENE_ESCAPE_REGEX_DEFAULT)) :
+    islandora_solr_lesser_escape($search_term);
+
   // Render letters.
-  if($show_a_z === 1){
-    $letterer_arr = islandora_solr_facet_pages_build_letterer($solr, $solr_set, $search_term);
-    //print($letterer_arr['facet_queries'].' '.$letterer_arr['fq_map'].' '.$prefix.' '.$path.' '.$url_alias);
-    $letterer = theme('islandora_solr_facet_pages_letterer', array(
-      'facet_queries' => $letterer_arr['facet_queries'],
-      'fq_map' => $letterer_arr['fq_map'],
-      'prefix' => $prefix,
-      'path' => $path,
-      'url_alias' => $url_alias,
-      'view_mode' => $view_mode,
-    ));
-  }
-  // Collect results.
-  $result_fields = islandora_solr_facet_pages_build_results($solr, $solr_set, $prefix, $search_term);
-  // Collect results with lowercase.
-  if(strtolower($prefix)  !== 'chinese'){
-    $prefix_lower = strtolower($prefix);
-    $result_fields_lower = islandora_solr_facet_pages_build_results($solr, $solr_set, $prefix_lower, $search_term);
-  }
-  // Merge uppercase with lowercase.
-   if(!empty($result_fields_lower) && isset($result_fields_lower)){
-     //$result_fields_merge = array_merge($result_fields, $result_fields_lower);
-     $result_fields_merge = $result_fields+$result_fields_lower;
-   }else{
-     $result_fields_merge = $result_fields;
-   }
-  
-  // Set the facet prefix.
-  if (strtolower($prefix) === 'chinese') {
-    $replace_string = "/^[^a-zA-Z]/";
-    foreach($result_fields_merge as $key => $value){
-      $key_string = $key;
-      if(preg_match("/^[^a-zA-Z]/",$key) == 0){
-        unset($result_fields_merge[$key]);
+    if($show_a_z === 1){
+        $letterer_arr = islandora_solr_facet_pages_build_letterer($solr, $solr_field, $search_term_escape);
+        $letterer = theme('islandora_solr_facet_pages_letterer', array(
+          'facet_queries' => $letterer_arr['facet_queries'],
+          'fq_map' => $letterer_arr['fq_map'],
+          'prefix' => $prefix,
+          'path' => $path,
+          'url_alias' => $url_alias,
+          'view_mode' => $view_mode,
+        ));
       }
-    }
-  }
-  
+      // Collect results.
+      $result_fields = islandora_solr_facet_pages_build_results($solr, $solr_field, $prefix, $search_term_escape);
+      // Collect results with lowercase.
+      if(strtolower($prefix)  !== 'chinese'){
+        $prefix_lower = strtolower($prefix);
+        $result_fields_lower = islandora_solr_facet_pages_build_results($solr, $solr_field, $prefix_lower, $search_term_escape);
+      }
+      // Merge uppercase with lowercase.
+       if(!empty($result_fields_lower) && isset($result_fields_lower)){
+         //$result_fields_merge = array_merge($result_fields, $result_fields_lower);
+         $result_fields_merge = $result_fields+$result_fields_lower;
+       }else{
+         $result_fields_merge = $result_fields;
+       }
+
+      // Set the facet prefix.
+      if (strtolower($prefix) === 'chinese') {
+        $replace_string = "/^[^a-zA-Z]/";
+        foreach($result_fields_merge as $key => $value){
+          $key_string = $key;
+          if(preg_match("/^[^a-zA-Z]/",$key) == 0){
+            unset($result_fields_merge[$key]);
+          }
+        }
+      }
   // Set up pager.
   $pager_data = islandora_solr_facet_pages_pager($result_fields_merge);
   $offset = $pager_data['offset'];
   $limit = $pager_data['limit'];
-  //print_r($pager_data);
   // Slice array.
-  $results = array_slice($result_fields_merge, $offset, $limit,true);
-  //print_r($results);
+  $results = array_slice($result_fields_merge, $offset, $limit, TRUE);
   $results = theme('islandora_solr_facet_pages_results', array(
     'results' => $results,
     'solr_field' => $solr_set['solr_field'],
@@ -584,5 +607,11 @@ function islandora_solr_facet_pages_search_form(array $form, array &$form_state,
  *   The Drupal form state.
  */
 function islandora_solr_facet_pages_search_form_submit(array $form, array &$form_state) {
-  drupal_goto("{$form_state['storage']['vars']['url_alias']}/{$form_state['storage']['vars']['path']}/{$form_state['storage']['vars']['prefix']}/{$form_state['values']['search_term']}");
+  module_load_include('inc', 'islandora_solr', 'includes/utilities');
+  $form_state['redirect'] = implode('/', array(
+    'browse',
+    $form_state['storage']['vars']['path'],
+    $form_state['storage']['vars']['prefix'],
+    islandora_solr_replace_slashes(trim($form_state['values']['search_term'])),
+  ));
 }
